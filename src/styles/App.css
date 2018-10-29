@@ -1,0 +1,42 @@
+.leaflet-container {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+}
+
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  transition: transform .2s ease-out;
+}
+
+.leaflet-control-attribution,
+.leaflet-control-zoom {
+  display: none;
+}
+
+.leaflet-div-icon {
+  width: 0;
+  height: 0;
+  border: none;
+}
+
+.me {
+  width: 32px;
+  height: 64px;
+
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -100%);
+
+  overflow: hidden;
+  
+  /* border: 1px solid red; */
+}
+.me > img {
+  position: absolute;
+  top: -0px;
+  left: -128px;
+}
