@@ -11,8 +11,6 @@ class App extends Component {
   constructor() {
     super()
 
-    this.animFrame = this.animFrame.bind(this)
-    
     this.state = {}
   }
   
@@ -32,7 +30,7 @@ class App extends Component {
     window.cancelAnimationFrame(this.animFrameRef)
   }
 
-  animFrame(time) {
+  animFrame = time => {
     /* fluid, real-time animations (not event-based) */
 
     this.animFrameRef = window.requestAnimationFrame(this.animFrame)
