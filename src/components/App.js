@@ -9,6 +9,12 @@ import '../styles/App.css'
 
 console.log(`window.devicePixelRatio ${window.devicePixelRatio}`)
 
+const msInDay = 86400000
+const msInMin = 60000
+const day = () => Date.now()/msInDay - Date.now()/msInDay%1
+const min = () => Date.now()/msInMin - Date.now()/msInMin%1
+const ms200 = t => (t || Date.now())/250 - (t || Date.now())/250%1
+
 const frames = {
   'up':    [0,1,2,1],
   'right': [9,10,11,10],
@@ -48,20 +54,44 @@ class App extends Component {
   }
 
   keyUp = e => {
-    this.setState(({ to:[ lr, ud ] }) => {
+    this.setState(({ to:[ lr, ud ], dir }) => {
       const newLR = keyToLR[e.key]
       const newUD = keyToUD[e.key]
   
       if (!newLR && !newUD) return
 
       return {
-        to: [newLR? null : lr, newUD? null : ud]
+        to: [newLR? null : lr, newUD? null : ud],
+        dir: ud || lr || dir
       }
     })
   }
 
   animFrame = time => {
     /* fluid, real-time animations (not event-based) */
+
+    this.setState(({ xy:[ x,y ], to:[ lr,ud ], last200ms }) => {
+      let state = {}
+      
+      if (ms200() !== last200ms) {
+        if (lr || ud) {
+          state.xy = [
+            lr === 'left'? x-1 : lr === 'right'? x+1 : x,
+            ud === 'up'? y-1 : ud === 'down'? y+1 : y
+          ]
+          
+          this.refs.map.leafletElement.panTo(toLatLng(state.xy), {
+            animate: true,
+            duration: .75,
+            easeLinearity: .75,
+          })
+
+          state.last200ms = ms200()
+        }
+      }
+
+      if (Object.keys(state).length) return state
+    })
 
     this.animFrameRef = window.requestAnimationFrame(this.animFrame)
   }
@@ -83,9 +113,9 @@ class App extends Component {
   }
   
   render() {
-    const { xy, to:[ lr, ud ], dir, spr } = this.state
+    const { xy, to:[ lr,ud ], dir, spr } = this.state
 
-    console.log(`to ${[lr,ud]}`)
+    console.log(`to ${[lr, ud]}`)
 
     const frm = lr || ud || dir || 'down'
     
@@ -93,8 +123,10 @@ class App extends Component {
     
     return (
       <Map
+        ref="map"
         crs={crs}
-        center={toLatLng(xy)}
+        center={toLatLng([0,0])}
+        duration={1}
         
         keyboard={false}
         // dragging={false}
