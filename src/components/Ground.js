@@ -1,17 +1,12 @@
 import L from 'leaflet'
 import { withLeaflet, GridLayer } from 'react-leaflet'
+import { toCanvas } from '../tiled'
 
-const getTileUrl = ({ x, y, z }) => {
-  console.log(`${z}@${x},${y} => ../assets/maps/${z}/${x},${y}.png`)
-
-  try {
-    return require(`../assets/maps/${z}/${x},${y}.png`)
-  } catch (_) {
-    return
+const tileLayer = L.GridLayer.extend({
+  createTile({ x,y,z }, done) {
+    return toCanvas(z, [x,y], canvas => done(null, canvas))
   }
-}
-
-const tileLayer = L.TileLayer.extend({getTileUrl: getTileUrl})
+})
 
 class Ground extends GridLayer {
   createLeafletElement() {

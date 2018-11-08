@@ -6,6 +6,7 @@ import Ground from './Ground'
 import DivIcon from './DivIcon'
 import spritesPng from '../assets/sprites/sprites0.png'
 import '../styles/App.css'
+import { toPng } from '../tiled'
 
 console.log(`window.devicePixelRatio ${window.devicePixelRatio}`)
 
@@ -13,7 +14,7 @@ const msInDay = 86400000
 const msInMin = 60000
 const day = () => Date.now()/msInDay - Date.now()/msInDay%1
 const min = () => Date.now()/msInMin - Date.now()/msInMin%1
-const ms200 = t => (t || Date.now())/250 - (t || Date.now())/250%1
+const ms250 = t => (t || Date.now())/250 - (t || Date.now())/250%1
 
 const frames = {
   'up':    [0,1,2,1],
@@ -70,10 +71,10 @@ class App extends Component {
   animFrame = time => {
     /* fluid, real-time animations (not event-based) */
 
-    this.setState(({ xy:[ x,y ], to:[ lr,ud ], last200ms }) => {
+    this.setState(({ xy:[ x,y ], to:[ lr,ud ], last250ms }) => {
       let state = {}
       
-      if (ms200() !== last200ms) {
+      if (ms250() !== last250ms) {
         if (lr || ud) {
           state.xy = [
             lr === 'left'? x-1 : lr === 'right'? x+1 : x,
@@ -86,7 +87,7 @@ class App extends Component {
             easeLinearity: .75,
           })
 
-          state.last200ms = ms200()
+          state.last250ms = ms250()
         }
       }
 
@@ -156,16 +157,10 @@ class App extends Component {
           >
             <img
               src={spritesPng} alt=""
-              style={{
-                transform: `
-                  translate(
-                    -${f3*32}px,
-                    -${spr*64}px
-                  )
-                `
-              }}
+              style={{transform: `translate(-${f3*32}px,-${spr*64}px)`}}
             />
           </div>
+          <div className="me-name">Alex<span><span>Lv.</span>10</span></div>
         </DivIcon>
 
       </Map>
