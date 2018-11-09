@@ -6,7 +6,7 @@
   height: 100%;
   transform: translate(-50%,-50%);
   image-rendering: pixelated;
-  background-color: rgba(0,0,0,0);
+  background-color: rgba(0,0,0);
 }
 
 .leaflet-marker-icon,
