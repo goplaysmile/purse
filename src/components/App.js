@@ -3,17 +3,13 @@ import 'leaflet/dist/leaflet.css'
 import { Map } from 'react-leaflet'
 import crs, { toLatLng } from '../crs'
 import Ground from './Ground'
+import Objects from './Objects'
 import DivIcon from './DivIcon'
-import spritesPng from '../assets/sprites/sprites0.png'
+import spritesPng from '../assets/sprites/0.png'
 import '../styles/App.css'
-import { toPng } from '../tiled'
 
 console.log(`window.devicePixelRatio ${window.devicePixelRatio}`)
 
-const msInDay = 86400000
-const msInMin = 60000
-const day = () => Date.now()/msInDay - Date.now()/msInDay%1
-const min = () => Date.now()/msInMin - Date.now()/msInMin%1
 const ms250 = t => (t || Date.now())/250 - (t || Date.now())/250%1
 
 const frames = {
@@ -71,7 +67,7 @@ class App extends Component {
   animFrame = time => {
     /* fluid, real-time animations (not event-based) */
 
-    this.setState(({ xy:[ x,y ], to:[ lr,ud ], last250ms }) => {
+    this.setState(({ xy:[ x, y ], to:[ lr, ud ], last250ms }) => {
       let state = {}
       
       if (ms250() !== last250ms) {
@@ -114,9 +110,9 @@ class App extends Component {
   }
   
   render() {
-    const { xy, to:[ lr,ud ], dir, spr } = this.state
+    const { xy, to:[ lr, ud ], dir, spr } = this.state
 
-    console.log(`to ${[lr, ud]}`)
+    // console.log(`to ${[lr, ud]}`) /** causes animFrame lag */
 
     const frm = lr || ud || dir || 'down'
     
@@ -145,9 +141,9 @@ class App extends Component {
       >
         <Ground />
 
-        <DivIcon
-          position={toLatLng(xy)}
-        >
+        <Objects />
+
+        <DivIcon position={toLatLng(xy)}>
           <div
             className="me"
             style={{

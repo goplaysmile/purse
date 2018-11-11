@@ -1,0 +1,8 @@
+.Object {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-100%);
+  color: white;
+  
+  border: 1px solid red;
+}
