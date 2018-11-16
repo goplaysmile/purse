@@ -8,27 +8,25 @@ const toCanvas = (map, [ chx, chy ], resolve) => {
     || chy < 0
     || chy >= height/ch
   ) return canvas /* consider mirroring layer-0 tiles outside boundaries */
-  
+    
   console.log(`requesting chunk ${[chx, chy]}`)
+
+  canvas.width = 256
+  canvas.height = 256
+
+  const visible = layers.filter(({ visible, name }) => visible && !name.includes('(*)'))
 
   const img = new Image()
   img.src = require('./assets/tiles/0.png')
   img.onload = () => {
-    canvas.width = 256
-    canvas.height = 256
+    
     const ctx = canvas.getContext('2d')
 
-    // ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    const visible = layers.filter(({ visible }) => visible)
-
-    for (const { data, name } of visible) {
-      if (name.toLowerCase().includes('(*)')) console.log(`${name} => ENTITY`)
-      
+    for (const { data } of visible) {
       for (let y=0; y<ch; y++) {
         for (let x=0; x<ch; x++) {
 
-          const t = (data[(chy*width*ch + y*width) + (chx*ch + x)]-1)
+          const t = data[(chy*width*ch + y*width) + (chx*ch + x)] - 1
           const tx = t % (img.width/32)
           const ty = ~~(t / (img.width/32))
           
