@@ -41,7 +41,7 @@
   transform: translate(-50%, -100%) rotateX(-45deg);
 
   overflow: hidden;
-  /* transition: left .25s linear, top .25s linear; */
+  transition: left .375s linear, top .375s linear;
   
   /* border: 1px solid red; */
 }
