@@ -1,16 +1,14 @@
 import React, { Component } from 'react'
-import 'leaflet/dist/leaflet.css'
 import { Map } from 'react-leaflet'
-import crs, { toLatLng } from '../crs'
+
 import Ground from './Ground'
-import Objects from './Objects'
-import DivIcon from './DivIcon'
-import spritesPng from '../assets/sprites/0.png'
+// import Objects from './Objects'
+import crs, { toLatLng } from '../crs'
+
+import 'leaflet/dist/leaflet.css'
 import '../styles/App.css'
 
-console.log(`window.devicePixelRatio ${window.devicePixelRatio}`)
-
-const ms250 = t => (t || Date.now())/250 - (t || Date.now())/250%1
+const sprites = [...Array(24).keys()].map(i => require(`../assets/sprites/${i}.png`))
 
 const frames = {
   'up':    [0,1,2,1],
@@ -33,7 +31,7 @@ class App extends Component {
   state = {
     xy: [0,0],
     to: [null,null],
-    spr: 0,
+    spr: 1,
   }
 
   keyDown = e => {
@@ -67,23 +65,23 @@ class App extends Component {
   animFrame = time => {
     /* fluid, real-time animations (not event-based) */
 
-    this.setState(({ xy:[ x, y ], to:[ lr, ud ], last250ms }) => {
+    this.setState(({ xy:[ x, y ], to:[ lr, ud ], last375ms }) => {
       let state = {}
       
-      if (ms250() !== last250ms) {
+      if (Date.now() >= (last375ms||0)+375) {
         if (lr || ud) {
           state.xy = [
             lr === 'left'? x-1 : lr === 'right'? x+1 : x,
             ud === 'up'? y-1 : ud === 'down'? y+1 : y
           ]
           
-          this.refs.map.leafletElement.panTo(toLatLng(state.xy), {
+          this.map.panTo(toLatLng(state.xy), {
             animate: true,
             duration: .75,
             easeLinearity: .75,
           })
 
-          state.last250ms = ms250()
+          state.last375ms = Date.now()
         }
       }
 
@@ -94,6 +92,8 @@ class App extends Component {
   }
   
   componentDidMount() {
+    this.map = this.refs.map.leafletElement
+
     window.addEventListener('keydown', this.keyDown)
     window.addEventListener('keyup', this.keyUp)
 
@@ -108,58 +108,69 @@ class App extends Component {
 
     window.cancelAnimationFrame(this.animFrameRef)
   }
+
+  refreshIcons = () => {
+    const { xy } = this.state
+    const { x:px, y:py } = this.map.latLngToContainerPoint(toLatLng(xy))
+    this.setState({ px, py })
+  }
   
   render() {
-    const { xy, to:[ lr, ud ], dir, spr } = this.state
+    const { px, py, xy, to:[ lr, ud ], dir, spr } = this.state
 
     // console.log(`to ${[lr, ud]}`) /** causes animFrame lag */
 
     const frm = lr || ud || dir || 'down'
     
     const [ f0, f1, f2, f3 ] = frames[frm]
+
+    const sprite = sprites[spr]
     
     return (
-      <Map
-        ref="map"
-        crs={crs}
-        center={toLatLng([0,0])}
-        duration={1}
-        
-        keyboard={false}
-        // dragging={false}
-        
-        zoom={0}
-        doubleClickZoom={false}
-        scrollWheelZoom={false}
-        touchZoom={false}
+      <div className="Camera">
+        <div className="Map">
+          <Map
+            ref="map"
+            crs={crs}
+            center={toLatLng([0,0])}
+            duration={1}
+            onMove={this.refreshIcons}
+            
+            keyboard={false}
+            // dragging={false}
+            
+            zoom={0}
+            doubleClickZoom={false}
+            scrollWheelZoom={false}
+            touchZoom={false}
 
-        onClick={e => {
-          this.setState(({ spr }) => ({
-            spr: (spr+1)%24
-          }))
-        }}
-      >
-        <Ground />
+            onClick={e => {
+              this.setState(({ spr }) => ({
+                spr: (spr+1)%24
+              }))
+            }}
+          >
+            <Ground />
+            {/* <Objects /> */}
+          </Map>
 
-        <Objects />
-
-        <DivIcon position={toLatLng(xy)}>
           <div
             className="me"
             style={{
+              left: `${px}px`,
+              top: `${py}px`,
               width: `${32}px`,
               height: `${64}px`,
             }}
           >
             <img
-              src={spritesPng} alt=""
-              style={{transform: `translate(-${f3*32}px,-${spr*64}px)`}}
+              src={sprite} alt=""
+              style={{ transform: `translateX(-${f3*32}px)` }}
             />
           </div>
-          <div className="me-name">Alex<span><span>Lv.</span>10</span></div>
-        </DivIcon>
 
-      </Map>
+        </div>
+      </div>
     )
   }
 }

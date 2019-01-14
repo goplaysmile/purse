@@ -1,41 +1,54 @@
-.leaflet-container {
+.Camera {
   position: fixed;
-  left: 50%;
-  top: 50%;
+  perspective: 100vh;
   width: 100%;
   height: 100%;
-  transform: translate(-50%,-50%);
+  overflow: hidden;
+}
+
+.Map {
+  width: 100%;
+  height: 140%;
+
   image-rendering: pixelated;
+  
+  transform-style: preserve-3d;
+  transform-origin: 0 0 0;
+  transform: rotateX(45deg);
+
+  transition: transform .5s linear;
+}
+
+.leaflet-container {
+  position: fixed;
+  width: 100%;
+  height: 100%;
   background-color: rgba(0,0,0);
 }
-
-.leaflet-marker-icon,
-.leaflet-marker-shadow {
-  transition: transform .25s linear;
-}
-
 .leaflet-control-attribution,
 .leaflet-control-zoom {
   display: none;
 }
 
-.leaflet-div-icon {
-  width: 0;
-  height: 0;
-  border: none;
-}
-
 .me {
-  top: 50%;
+  position: absolute;
+  z-index: 400;
   left: 50%;
-  transform: translate(-50%,-100%);
+  top: 50%;
+  
+  transform-style: preserve-3d;
+  transform-origin: 0 100% 0;
+  transform: translate(-50%, -100%) rotateX(-45deg);
 
   overflow: hidden;
+  /* transition: left .25s linear, top .25s linear; */
   
   /* border: 1px solid red; */
 }
 .me > img {
   position: absolute;
+  
+  /* border: 1px solid red; */
 }
 .me-name {
   text-align: center;
