@@ -1,12 +1,26 @@
 import React, { Component } from 'react'
 import { Map } from 'react-leaflet'
 
+import firebase from 'firebase/app'
+
 import Ground from './Ground'
 // import Objects from './Objects'
+
+import generateStore from './Store'
 import crs, { toLatLng } from '../crs'
 
 import 'leaflet/dist/leaflet.css'
 import '../styles/App.css'
+
+const config = {
+  apiKey            : 'AIzaSyCKE8XTWiaGoLE876gg_fTMMj0yDLV7L2Q',
+  authDomain        : 'test-3bb26.firebaseapp.com',
+  databaseURL       : 'https://test-3bb26.firebaseio.com',
+  projectId         : 'test-3bb26',
+  storageBucket     : 'test-3bb26.appspot.com',
+  messagingSenderId : '198127730795'
+}
+firebase.initializeApp(config)
 
 const sprites = [...Array(24).keys()].map(i => require(`../assets/sprites/${i}.png`))
 
@@ -28,6 +42,7 @@ const keyToUD = {
 }
 
 class App extends Component {
+
   state = {
     xy  : [0,0],
     to  : [null,null],
@@ -62,33 +77,41 @@ class App extends Component {
     })
   }
 
-  animFrame = time => {
+  animationFrame = time => {
     /* fluid, real-time animations (not event-based) */
 
-    this.setState(({ xy: [x, y], to: [lr, ud], last375ms }) => {
+    this.setState(({ px, py, xy, to: [lr, ud], last375ms }) => {
       let state = {}
       
       if (Date.now() >= (last375ms||0)+375) {
         if (lr || ud) {
+          const [ x, y ] = xy
+
           state.xy = [
             lr === 'l'? x-1 : lr === 'r'? x+1 : x,
             ud === 'u'? y-1 : ud === 'd'? y+1 : y
           ]
           
           this.map.panTo(toLatLng(state.xy), {
-            animate: true,
-            duration: .75,
-            easeLinearity: .75,
+            animate       : true,
+            duration      : .75,
+            easeLinearity : .75,
           })
 
           state.last375ms = Date.now()
         }
       }
 
+      const { x, y } = this.map.latLngToContainerPoint(toLatLng(xy))
+      if (x !== px || y !== py) {
+        state.px = x
+        state.py = y
+      }
+
       if (Object.keys(state).length) return state
     })
 
-    this.animFrameRef = window.requestAnimationFrame(this.animFrame)
+    this.animationFrameRef = window.requestAnimationFrame(this.animationFrame)
   }
   
   componentDidMount() {
@@ -97,8 +120,8 @@ class App extends Component {
     window.addEventListener('keydown', this.keyDown)
     window.addEventListener('keyup', this.keyUp)
 
-    if (!this.animFrameRef) {
-      this.animFrameRef = window.requestAnimationFrame(this.animFrame)
+    if (!this.animationFrameRef) {
+      this.animationFrameRef = window.requestAnimationFrame(this.animationFrame)
     }
   }
 
@@ -106,15 +129,9 @@ class App extends Component {
     window.removeEventListener('keydown', this.keyDown)
     window.removeEventListener('keyup', this.keyUp)
 
-    window.cancelAnimationFrame(this.animFrameRef)
+    window.cancelAnimationFrame(this.animationFrameRef)
   }
 
-  refreshIcons = () => {
-    const { xy } = this.state
-    const { x:px, y:py } = this.map.latLngToContainerPoint(toLatLng(xy))
-    this.setState({ px, py })
-  }
-  
   render() {
     const { px, py, xy, to: [lr, ud], dir, spr } = this.state
 
@@ -132,8 +149,7 @@ class App extends Component {
             crs={crs}
             center={toLatLng([0,0])}
             duration={1}
-            onMove={this.refreshIcons}
-            
+
             keyboard={false}
             dragging={false}
             

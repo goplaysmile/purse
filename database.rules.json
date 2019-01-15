@@ -1,20 +1,6 @@
 {
   "rules": {
-    ".read": false,
-    ".write": false,
-    "die": {
-      "color": {
-        ".read": true
-      },
-      "rolls": {
-        "$i": {
-          ".read": "$i === root.child('die/i').val()+''"
-        }
-      },
-      "i": {
-        ".read": true,
-        ".write": true
-      }
-    }
+    ".read": true,
+    ".write": true
   }
 }
