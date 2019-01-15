@@ -11,31 +11,31 @@ import '../styles/App.css'
 const sprites = [...Array(24).keys()].map(i => require(`../assets/sprites/${i}.png`))
 
 const frames = {
-  'up':    [0,1,2,1],
-  'right': [9,10,11,10],
-  'down':  [3,4,5,4],
-  'left':  [6,7,8,7]
+  'u' : [0,1,2,1],
+  'r' : [9,10,11,10],
+  'd' : [3,4,5,4],
+  'l' : [6,7,8,7],
 }
 
 const keyToLR = {
-  'ArrowLeft': 'left',
-  'ArrowRight': 'right'
+  'ArrowLeft'  : 'l',
+  'ArrowRight' : 'r',
 }
 
 const keyToUD = {
-  'ArrowUp': 'up',
-  'ArrowDown': 'down'
+  'ArrowUp'   : 'u',
+  'ArrowDown' : 'd',
 }
 
 class App extends Component {
   state = {
-    xy: [0,0],
-    to: [null,null],
-    spr: 1,
+    xy  : [0,0],
+    to  : [null,null],
+    spr : 1,
   }
 
   keyDown = e => {
-    this.setState(({ to:[ lr, ud ], dir }) => {
+    this.setState(({ to: [lr, ud], dir }) => {
       const newLR = keyToLR[e.key] || lr
       const newUD = keyToUD[e.key] || ud
   
@@ -49,7 +49,7 @@ class App extends Component {
   }
 
   keyUp = e => {
-    this.setState(({ to:[ lr, ud ], dir }) => {
+    this.setState(({ to: [lr, ud], dir }) => {
       const newLR = keyToLR[e.key]
       const newUD = keyToUD[e.key]
   
@@ -65,14 +65,14 @@ class App extends Component {
   animFrame = time => {
     /* fluid, real-time animations (not event-based) */
 
-    this.setState(({ xy:[ x, y ], to:[ lr, ud ], last375ms }) => {
+    this.setState(({ xy: [x, y], to: [lr, ud], last375ms }) => {
       let state = {}
       
       if (Date.now() >= (last375ms||0)+375) {
         if (lr || ud) {
           state.xy = [
-            lr === 'left'? x-1 : lr === 'right'? x+1 : x,
-            ud === 'up'? y-1 : ud === 'down'? y+1 : y
+            lr === 'l'? x-1 : lr === 'r'? x+1 : x,
+            ud === 'u'? y-1 : ud === 'd'? y+1 : y
           ]
           
           this.map.panTo(toLatLng(state.xy), {
@@ -116,11 +116,9 @@ class App extends Component {
   }
   
   render() {
-    const { px, py, xy, to:[ lr, ud ], dir, spr } = this.state
+    const { px, py, xy, to: [lr, ud], dir, spr } = this.state
 
-    // console.log(`to ${[lr, ud]}`) /** causes animFrame lag */
-
-    const frm = lr || ud || dir || 'down'
+    const frm = lr || ud || dir || 'd'
     
     const [ f0, f1, f2, f3 ] = frames[frm]
 
@@ -137,7 +135,7 @@ class App extends Component {
             onMove={this.refreshIcons}
             
             keyboard={false}
-            // dragging={false}
+            dragging={false}
             
             zoom={0}
             doubleClickZoom={false}
