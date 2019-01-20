@@ -9,7 +9,7 @@ const toCanvas = (map, [ chx, chy ], resolve) => {
     || chy >= height/ch
   ) return canvas /* consider mirroring layer-0 tiles outside boundaries */
     
-  console.log(`requesting chunk ${[chx, chy]}`)
+  // console.log(`requesting chunk ${[chx, chy]}`)
 
   canvas.width = 256
   canvas.height = 256

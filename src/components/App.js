@@ -1,26 +1,16 @@
 import React, { Component } from 'react'
 import { Map } from 'react-leaflet'
 
-import firebase from 'firebase/app'
-
 import Ground from './Ground'
 // import Objects from './Objects'
 
-import generateStore from './Store'
+import signInDatabase from './Database'
 import crs, { toLatLng } from '../crs'
 
 import 'leaflet/dist/leaflet.css'
 import '../styles/App.css'
 
-const config = {
-  apiKey            : 'AIzaSyCKE8XTWiaGoLE876gg_fTMMj0yDLV7L2Q',
-  authDomain        : 'test-3bb26.firebaseapp.com',
-  databaseURL       : 'https://test-3bb26.firebaseio.com',
-  projectId         : 'test-3bb26',
-  storageBucket     : 'test-3bb26.appspot.com',
-  messagingSenderId : '198127730795'
-}
-firebase.initializeApp(config)
+const SignIn = signInDatabase('online')
 
 const sprites = [...Array(24).keys()].map(i => require(`../assets/sprites/${i}.png`))
 
@@ -44,55 +34,55 @@ const keyToUD = {
 class App extends Component {
 
   state = {
-    xy  : [0,0],
-    to  : [null,null],
-    spr : 1,
+    to: [null, null],
   }
 
   keyDown = e => {
-    this.setState(({ to: [lr, ud], dir }) => {
+    const { dir, setMe } = this.getMe()
+
+    this.setState(({ to: [lr, ud] }) => {
       const newLR = keyToLR[e.key] || lr
       const newUD = keyToUD[e.key] || ud
   
       if (newLR === lr && newUD === ud) return
 
-      return {
-        to: [newLR, newUD],
-        dir: newLR || newUD || dir
-      }
+      setMe({ dir: newLR||newUD||dir })
+
+      return {to: [newLR, newUD]}
     })
   }
 
   keyUp = e => {
-    this.setState(({ to: [lr, ud], dir }) => {
+    const { dir, setMe } = this.getMe()
+    
+    this.setState(({ to: [lr, ud] }) => {
       const newLR = keyToLR[e.key]
       const newUD = keyToUD[e.key]
   
       if (!newLR && !newUD) return
 
-      return {
-        to: [newLR? null : lr, newUD? null : ud],
-        dir: ud || lr || dir
-      }
+      setMe({ dir: ud||lr||dir })
+
+      return {to: [newLR? null : lr, newUD? null : ud]}
     })
   }
 
   animationFrame = time => {
     /* fluid, real-time animations (not event-based) */
 
-    this.setState(({ px, py, xy, to: [lr, ud], last375ms }) => {
+    const { x, y, setMe } = this.getMe()
+
+    this.setState(({ px, py, to: [lr, ud], last375ms }) => {
       let state = {}
       
       if (Date.now() >= (last375ms||0)+375) {
         if (lr || ud) {
-          const [ x, y ] = xy
 
-          state.xy = [
-            lr === 'l'? x-1 : lr === 'r'? x+1 : x,
-            ud === 'u'? y-1 : ud === 'd'? y+1 : y
-          ]
+          const dx = lr === 'l'? x-1 : lr === 'r'? x+1 : x
+          const dy = ud === 'u'? y-1 : ud === 'd'? y+1 : y
+          setMe({ x:dx, y:dy })
           
-          this.map.panTo(toLatLng(state.xy), {
+          this.map.panTo(toLatLng([dx,dy]), {
             animate       : true,
             duration      : .75,
             easeLinearity : .75,
@@ -102,10 +92,10 @@ class App extends Component {
         }
       }
 
-      const { x, y } = this.map.latLngToContainerPoint(toLatLng(xy))
-      if (x !== px || y !== py) {
-        state.px = x
-        state.py = y
+      const { dx, dy } = this.map.latLngToContainerPoint(toLatLng([x,y]))
+      if (dx !== px || dy !== py) {
+        state.px = dx
+        state.py = dy
       }
 
       if (Object.keys(state).length) return state
@@ -132,12 +122,27 @@ class App extends Component {
     window.cancelAnimationFrame(this.animationFrameRef)
   }
 
-  render() {
-    const { px, py, xy, to: [lr, ud], dir, spr } = this.state
+  getMe = () => {
+    const { uid, players } = this.props
 
-    const frm = lr || ud || dir || 'd'
-    
-    const [ f0, f1, f2, f3 ] = frames[frm]
+    const [ me, setMe ] = (players||{})[uid]||[{}]
+    const { x, y, spr, dir } = me||{}
+
+    return {
+      x   : x   || 0,
+      y   : y   || 0,
+      spr : spr || 0,
+      dir : dir || 'd',
+      setMe,
+    }
+  }
+
+  render() {
+    const { px, py, to: [lr, ud] } = this.state
+
+    const { x, y, spr, dir } = this.getMe()
+
+    const [,,, f3 ] = frames[lr || ud || dir]
 
     const sprite = sprites[spr]
     
@@ -158,11 +163,11 @@ class App extends Component {
             scrollWheelZoom={false}
             touchZoom={false}
 
-            onClick={e => {
-              this.setState(({ spr }) => ({
-                spr: (spr+1)%24
-              }))
-            }}
+            // onClick={e => {
+            //   this.setState(({ spr }) => ({
+            //     spr: (spr+1)%24
+            //   }))
+            // }}
           >
             <Ground />
             {/* <Objects /> */}
@@ -171,10 +176,10 @@ class App extends Component {
           <div
             className="me"
             style={{
-              left: `${px}px`,
-              top: `${py}px`,
-              width: `${32}px`,
-              height: `${64}px`,
+              left   : `${px}px`,
+              top    : `${py}px`,
+              width  : `${32}px`,
+              height : `${64}px`,
             }}
           >
             <img
@@ -189,4 +194,19 @@ class App extends Component {
   }
 }
 
-export default App
+const Uid = ({ uid, connectDatabase }) => {
+
+  const Me = connectDatabase(`players/${uid}`)
+
+  return (
+    <Me>
+      <App />
+    </Me>
+  )
+}
+
+export default () => (
+  <SignIn>
+    <Uid />
+  </SignIn>
+)

@@ -8,6 +8,8 @@ class Store extends Component {
       items => {
         this.setState(({ hook: [store, setStore] }) => {
 
+          if (typeof items !== 'object' || items === null) return
+
           Object.keys(items)
             .filter(item => items[item] === null)
             .forEach(item => {
@@ -22,7 +24,7 @@ class Store extends Component {
   }
 }
 
-const generateStore = init => class Temp extends Store {
+export const generateStore = init => class Temp extends Store {
 
   static contextType = createContext()
 
@@ -40,5 +42,3 @@ const generateStore = init => class Temp extends Store {
     )
   }
 }
-
-export default generateStore
