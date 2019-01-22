@@ -4,7 +4,7 @@ import { Map } from 'react-leaflet'
 import Ground from './Ground'
 // import Objects from './Objects'
 
-import signInDatabase from './Database'
+import { signInDatabase, connectDatabase } from './Database'
 import crs, { toLatLng } from '../crs'
 
 import 'leaflet/dist/leaflet.css'
@@ -38,7 +38,8 @@ class App extends Component {
   }
 
   keyDown = e => {
-    const { dir, setMe } = this.getMe()
+    const { uid } = this.props
+    const { dir, setPosition } = this.getPlayer(uid)
 
     this.setState(({ to: [lr, ud] }) => {
       const newLR = keyToLR[e.key] || lr
@@ -46,14 +47,15 @@ class App extends Component {
   
       if (newLR === lr && newUD === ud) return
 
-      setMe({ dir: newLR||newUD||dir })
+      setPosition({ dir: newLR||newUD||dir })
 
       return {to: [newLR, newUD]}
     })
   }
 
   keyUp = e => {
-    const { dir, setMe } = this.getMe()
+    const { uid } = this.props
+    const { dir, setPosition } = this.getPlayer(uid)
     
     this.setState(({ to: [lr, ud] }) => {
       const newLR = keyToLR[e.key]
@@ -61,7 +63,7 @@ class App extends Component {
   
       if (!newLR && !newUD) return
 
-      setMe({ dir: ud||lr||dir })
+      setPosition({ dir: ud||lr||dir })
 
       return {to: [newLR? null : lr, newUD? null : ud]}
     })
@@ -70,7 +72,9 @@ class App extends Component {
   animationFrame = time => {
     /* fluid, real-time animations (not event-based) */
 
-    const { x, y, setMe } = this.getMe()
+    const { uid } = this.props
+    const { x, y, setPosition } = this.getPlayer(uid)
+    let pos = {}
 
     this.setState(({ px, py, to: [lr, ud], last375ms }) => {
       let state = {}
@@ -78,21 +82,28 @@ class App extends Component {
       if (Date.now() >= (last375ms||0)+375) {
         if (lr || ud) {
 
-          const dx = lr === 'l'? x-1 : lr === 'r'? x+1 : x
-          const dy = ud === 'u'? y-1 : ud === 'd'? y+1 : y
-          setMe({ x:dx, y:dy })
+          pos.x = lr === 'l'?
+            x-1
+            : lr === 'r'?
+              x+1
+              : x
+          pos.y = ud === 'u'?
+            y-1
+            : ud === 'd'?
+              y+1
+              : y
           
-          this.map.panTo(toLatLng([dx,dy]), {
-            animate       : true,
-            duration      : .75,
-            easeLinearity : .75,
-          })
+          // this.map.panTo(toLatLng([ pos.x, pos.y ]), {
+          //   animate       : true,
+          //   duration      : .75,
+          //   easeLinearity : .75,
+          // })
 
           state.last375ms = Date.now()
         }
       }
 
-      const { dx, dy } = this.map.latLngToContainerPoint(toLatLng([x,y]))
+      const { x:dx, y:dy } = this.map.latLngToContainerPoint(toLatLng([ pos.x||x, pos.y||y ]))
       if (dx !== px || dy !== py) {
         state.px = dx
         state.py = dy
@@ -100,6 +111,8 @@ class App extends Component {
 
       if (Object.keys(state).length) return state
     })
+    
+    if (Object.keys(pos).length) setPosition(pos)
 
     this.animationFrameRef = window.requestAnimationFrame(this.animationFrame)
   }
@@ -122,29 +135,43 @@ class App extends Component {
     window.cancelAnimationFrame(this.animationFrameRef)
   }
 
-  getMe = () => {
-    const { uid, players } = this.props
+  getPlayer = uid => {
+    // console.log(`getPlayer(${uid})`)
+    const { cosmetic, position } = this.props
 
-    const [ me, setMe ] = (players||{})[uid]||[{}]
-    const { x, y, spr, dir } = me||{}
+    const [ cos, setCosmetic ] = (cosmetic||{})[uid]||[{}]
+    const { spr } = cos||{}
 
+    const [ pos, setPosition ] = (position||{})[uid]||[{}]
+    const { x, y, dir } = pos||{}
+
+    const { x:px, y:py } = this.map? this.map.latLngToContainerPoint(toLatLng([ x||0, y||0 ])) : {}
+    
+    // if (!setPosition) console.error(`getPlayer(${uid}); setPosition undefined`)
+    
     return {
       x   : x   || 0,
       y   : y   || 0,
       spr : spr || 0,
       dir : dir || 'd',
-      setMe,
+      px  : px  || 0,
+      py  : py  || 0,
+      setCosmetic,
+      setPosition,
     }
   }
 
+  rotateSprite = () => {
+    const { uid } = this.props
+    const { spr, setCosmetic } = this.getPlayer(uid)
+
+    setCosmetic({ spr: (spr+1)%24 })
+  }
+
   render() {
-    const { px, py, to: [lr, ud] } = this.state
-
-    const { x, y, spr, dir } = this.getMe()
-
-    const [,,, f3 ] = frames[lr || ud || dir]
-
-    const sprite = sprites[spr]
+    const { uid, online } = this.props
+    const { x, y } = this.getPlayer(uid)
+    const { to: [lr, ud] } = this.state
     
     return (
       <div className="Camera">
@@ -152,7 +179,7 @@ class App extends Component {
           <Map
             ref="map"
             crs={crs}
-            center={toLatLng([0,0])}
+            center={toLatLng([x,y])}
             duration={1}
 
             keyboard={false}
@@ -163,30 +190,37 @@ class App extends Component {
             scrollWheelZoom={false}
             touchZoom={false}
 
-            // onClick={e => {
-            //   this.setState(({ spr }) => ({
-            //     spr: (spr+1)%24
-            //   }))
-            // }}
+            onClick={() => this.rotateSprite()}
           >
             <Ground />
             {/* <Objects /> */}
           </Map>
 
-          <div
-            className="me"
-            style={{
-              left   : `${px}px`,
-              top    : `${py}px`,
-              width  : `${32}px`,
-              height : `${64}px`,
-            }}
-          >
-            <img
-              src={sprite} alt=""
-              style={{ transform: `translateX(-${f3*32}px)` }}
-            />
-          </div>
+          {
+            Object.keys(online).map(id => {
+              const { px, py, spr, dir } = this.getPlayer(id)
+              const [,,, f3 ] = frames[id !== uid? dir : lr||ud||dir]
+              const sprite = sprites[spr]
+
+              return (
+                <div
+                  key={id}
+                  className="me"
+                  style={{
+                    left   : `${px}px`,
+                    top    : `${py}px`,
+                    width  : `${32}px`,
+                    height : `${64}px`,
+                  }}
+                >
+                  <img
+                    src={sprite} alt=""
+                    style={{ transform: `translateX(-${f3*32}px)` }}
+                  />
+                </div>
+              )
+            })
+          }
 
         </div>
       </div>
@@ -194,19 +228,35 @@ class App extends Component {
   }
 }
 
-const Uid = ({ uid, connectDatabase }) => {
+function Players(props) {
+  let { online, unmounted } = props
+  
+  if (!online) return null
 
-  const Me = connectDatabase(`players/${uid}`)
+  unmounted = unmounted||{...online}
+  const [ uid, ...uids ] = Object.keys(unmounted)
+  delete unmounted[uid]
 
+  const Costmetic = connectDatabase(`cosmetic/${uid}`)
+  const Position  = connectDatabase(`position/${uid}`)
+  
   return (
-    <Me>
-      <App />
-    </Me>
+    <Costmetic {...props}>
+      <Position>
+        {uids.length? Players({ online, unmounted }) : <App />}
+      </Position>
+    </Costmetic>
   )
 }
 
+// const SignedIn = ({ uid, online }) => (
+//   <SignIn>
+//     <Players />
+//   </SignIn>
+// )
+
 export default () => (
   <SignIn>
-    <Uid />
+    <Players />
   </SignIn>
 )

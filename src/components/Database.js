@@ -4,6 +4,8 @@ import firebase from 'firebase/app'
 import 'firebase/auth'
 import 'firebase/database'
 
+import merge from 'deepmerge'
+
 function toObject(path, value) {
   const [ head, ...tail ] = path.split('/')
 
@@ -20,14 +22,12 @@ function toValue(path, object) {
     : toValue(tail.join('/'), object[head])
 }
 
-const signInDatabase = path => class Db extends Component {
+export const signInDatabase = path => class Db extends Component {
 
   static contextType = createContext()
   static mounted = false
 
-  state = {
-    [path]: {}
-  }
+  state = {}
   
   constructor() {
     super()
@@ -59,7 +59,7 @@ const signInDatabase = path => class Db extends Component {
     if (this.mounted) return
 
     this.unregisterAuthObserver()
-    this.ref.off('value', this.onValueChange)
+    if (this.ref) this.ref.off('value', this.onValueChange)
   }
 
   onAuthStateChanged = user => {
@@ -83,8 +83,6 @@ const signInDatabase = path => class Db extends Component {
   
   render() {
     const { children } = this.props
-    const db = this.state
-    const { uid } = db
 
     const consumer = (
       <Db.contextType.Consumer>
@@ -92,22 +90,15 @@ const signInDatabase = path => class Db extends Component {
       </Db.contextType.Consumer>
     )
 
-    return this.mounted? consumer : uid? (
-
-      <Db.contextType.Provider
-
-        value={{
-          ...db,
-          connectDatabase(path) {return connectDatabase(path, db)},
-        }}
-
-      >{consumer}</Db.contextType.Provider>
-
+    return this.mounted? consumer : Object.keys(this.state).length? (
+      <Db.contextType.Provider value={this.state}>
+        {consumer}
+      </Db.contextType.Provider>
     ) : null
   }
 }
 
-const connectDatabase = (path, db) => class Db extends Component {
+export const connectDatabase = path => class Db extends Component {
 
   static contextType = createContext()
   static mounted = false
@@ -124,22 +115,10 @@ const connectDatabase = (path, db) => class Db extends Component {
   componentDidMount() {
     if (this.mounted) return
 
-    
     this.ref = firebase.database().ref(path)
-    this.ref.on('value', this.onValueChange)
-    
-    this.setDatabase = value => {
-      const [ database ] = toValue(path, this.state)
-
-      this.ref.set(
-        typeof value === 'object'
-            && value !== null?
-          {...database, ...value}
-          : value
-      )
-    }
-    
     this.setState(toObject(path, [null, this.setDatabase]))
+
+    this.ref.on('value', this.onValueChange)
   }
 
   componentWillUnmount() {
@@ -148,33 +127,40 @@ const connectDatabase = (path, db) => class Db extends Component {
     this.ref.off('value', this.onValueChange)
   }
 
+  setDatabase = value => {
+    const [ database ] = toValue(path, this.state)
+
+    this.ref.set(
+      typeof value === 'object'
+          && value !== null?
+        {...database, ...value}
+        : value
+    )
+  }
+  
   onValueChange = snap => {
     this.setState(toObject(path, [snap.val(), this.setDatabase]))
   }
 
   render() {
     const { children } = this.props
+    const props = {...this.props}
+    delete props.children
+
+    // console.log(`${path} :: props ${JSON.stringify(props, null, 2)}`)
+    // console.log(`${path} :: this.state ${JSON.stringify(this.state, null, 2)}`)
+    // console.log(`${path} :: merge(props, value) ${JSON.stringify(merge(props, this.state), null, 2)}`)
 
     const consumer = (
       <Db.contextType.Consumer>
-        {value => Children.map(children, child => cloneElement(child, value))}
+        {value => Children.map(children, child => cloneElement(child, merge(props, value)))}
       </Db.contextType.Consumer>
     )
 
     return this.mounted? consumer : (
-
-      <Db.contextType.Provider
-
-        value={{
-          ...this.state,
-          ...db,
-          connectDatabase(path) {return connectDatabase(path, {...this.state, ...db})},
-        }}
-
-      >{consumer}</Db.contextType.Provider>
-
+      <Db.contextType.Provider value={this.state}>
+        {consumer}
+      </Db.contextType.Provider>
     )
   }
 }
-
-export default signInDatabase
