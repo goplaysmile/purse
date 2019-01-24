@@ -113,6 +113,7 @@ export const connectDatabase = path => class Db extends Component {
   }
 
   componentDidMount() {
+    console.log(`componentDidMount ${path}`)
     if (this.mounted) return
 
     this.ref = firebase.database().ref(path)
@@ -122,6 +123,7 @@ export const connectDatabase = path => class Db extends Component {
   }
 
   componentWillUnmount() {
+    console.log(`componentDidMount ${path}`)
     if (this.mounted) return
 
     this.ref.off('value', this.onValueChange)
@@ -146,10 +148,6 @@ export const connectDatabase = path => class Db extends Component {
     const { children } = this.props
     const props = {...this.props}
     delete props.children
-
-    // console.log(`${path} :: props ${JSON.stringify(props, null, 2)}`)
-    // console.log(`${path} :: this.state ${JSON.stringify(this.state, null, 2)}`)
-    // console.log(`${path} :: merge(props, value) ${JSON.stringify(merge(props, this.state), null, 2)}`)
 
     const consumer = (
       <Db.contextType.Consumer>

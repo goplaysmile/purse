@@ -38,42 +38,30 @@ class App extends Component {
   }
 
   keyDown = e => {
-    const { uid } = this.props
-    const { dir, setPosition } = this.getPlayer(uid)
-
     this.setState(({ to: [lr, ud] }) => {
-      const newLR = keyToLR[e.key] || lr
-      const newUD = keyToUD[e.key] || ud
+      const dLR = keyToLR[e.key] || lr
+      const dUD = keyToUD[e.key] || ud
   
-      if (newLR === lr && newUD === ud) return
+      if (dLR === lr && dUD === ud) return
 
-      setPosition({ dir: newLR||newUD||dir })
-
-      return {to: [newLR, newUD]}
+      return {to: [dLR, dUD]}
     })
   }
 
   keyUp = e => {
-    const { uid } = this.props
-    const { dir, setPosition } = this.getPlayer(uid)
-    
     this.setState(({ to: [lr, ud] }) => {
-      const newLR = keyToLR[e.key]
-      const newUD = keyToUD[e.key]
+      const dLR = keyToLR[e.key]
+      const dUD = keyToUD[e.key]
   
-      if (!newLR && !newUD) return
+      if (!dLR && !dUD) return
 
-      setPosition({ dir: ud||lr||dir })
-
-      return {to: [newLR? null : lr, newUD? null : ud]}
+      return {to: [ dLR?null:lr, dUD?null:ud ]}
     })
   }
 
   animationFrame = time => {
-    /* fluid, real-time animations (not event-based) */
-
     const { uid } = this.props
-    const { x, y, setPosition } = this.getPlayer(uid)
+    const { x, y, dir, setPosition } = this.getPlayer(uid)
     let pos = {}
 
     this.setState(({ px, py, to: [lr, ud], last375ms }) => {
@@ -92,6 +80,7 @@ class App extends Component {
             : ud === 'd'?
               y+1
               : y
+          pos.dir = lr||ud||dir
           
           // this.map.panTo(toLatLng([ pos.x, pos.y ]), {
           //   animate       : true,
@@ -136,7 +125,6 @@ class App extends Component {
   }
 
   getPlayer = uid => {
-    // console.log(`getPlayer(${uid})`)
     const { cosmetic, position } = this.props
 
     const [ cos, setCosmetic ] = (cosmetic||{})[uid]||[{}]
@@ -146,8 +134,6 @@ class App extends Component {
     const { x, y, dir } = pos||{}
 
     const { x:px, y:py } = this.map? this.map.latLngToContainerPoint(toLatLng([ x||0, y||0 ])) : {}
-    
-    // if (!setPosition) console.error(`getPlayer(${uid}); setPosition undefined`)
     
     return {
       x   : x   || 0,
@@ -171,7 +157,6 @@ class App extends Component {
   render() {
     const { uid, online } = this.props
     const { x, y } = this.getPlayer(uid)
-    const { to: [lr, ud] } = this.state
     
     return (
       <div className="Camera">
@@ -189,8 +174,6 @@ class App extends Component {
             doubleClickZoom={false}
             scrollWheelZoom={false}
             touchZoom={false}
-
-            onClick={() => this.rotateSprite()}
           >
             <Ground />
             {/* <Objects /> */}
@@ -199,7 +182,7 @@ class App extends Component {
           {
             Object.keys(online).map(id => {
               const { px, py, spr, dir } = this.getPlayer(id)
-              const [,,, f3 ] = frames[id !== uid? dir : lr||ud||dir]
+              const [,,, f3 ] = frames[dir]
               const sprite = sprites[spr]
 
               return (
@@ -216,6 +199,7 @@ class App extends Component {
                   <img
                     src={sprite} alt=""
                     style={{ transform: `translateX(-${f3*32}px)` }}
+                    onClick={() => id === uid? this.rotateSprite() : null}
                   />
                 </div>
               )
